@@ -1,0 +1,51 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "server"
+path = "src/main.rs"
+
+[lib]
+name = "server"
+path = "src/lib.rs"
+
+[dependencies]
+aws-config = {version = "1", default-features = true, features = ["behavior-version-latest"]}
+aws-smithy-types = {version = "1"}
+aws-sdk-sts = { version = "1" }
+anyhow = "1"
+axum = { version = "0.8", features = ["tokio", "json", "macros"] }
+clap = { version = "4.5", features = ["derive", "env"] }
+futures = { version = "0.3" }
+futures-util = "0.3"
+http = "1"
+http-body = "1"
+k8s-openapi = { version = "0.24", features = ["v1_32"] }
+kube = { version = "0.98", default-features = false, features = [
+  "client",
+  "rustls-tls",
+  "runtime",
+] }
+metrics = { version = "0.24" }
+metrics-exporter-prometheus = { version = "0.16" }
+pin-project-lite = "0.2"
+rustls-pemfile = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1" }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "signal"] }
+tokio-rustls = "0.26"
+tokio-util = "0.7"
+tower = { version = "0.5", features = ["full"] }
+tower-http = { version = "0.6", features = ["trace"] }
+tower-layer = "0.3"
+tower-service = "0.3"
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+thiserror = "2"
+serde_yml = "0.0.12"
+ahash = "0.8"
+axum-extra = { version = "0.10", features = ["typed-header"]}
+headers = "0.4.0"
+axum-macros = { version = "0.5.0"}
