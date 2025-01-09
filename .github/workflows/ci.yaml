@@ -24,4 +24,4 @@ jobs:
         with:
           push: true
           tags: |
-            ghcr.io/rcanderson23/homelab-aws-credentials:latest
+            ghcr.io/rcanderson23/homelab-aws-creds:latest
