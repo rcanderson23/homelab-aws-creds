@@ -1,14 +1,14 @@
 [package]
-name = "server"
+name = "homelab-aws-creds"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "server"
+name = "homelab-aws-creds"
 path = "src/main.rs"
 
 [lib]
-name = "server"
+name = "homelab_aws_creds"
 path = "src/lib.rs"
 
 [dependencies]
@@ -27,6 +27,7 @@ kube = { version = "0.98", default-features = false, features = [
   "client",
   "rustls-tls",
   "runtime",
+  "admission"
 ] }
 metrics = { version = "0.24" }
 metrics-exporter-prometheus = { version = "0.16" }
@@ -49,3 +50,10 @@ ahash = "0.8"
 axum-extra = { version = "0.10", features = ["typed-header"]}
 headers = "0.4.0"
 axum-macros = { version = "0.5.0"}
+ipnetwork = "0.21"
+axum-server = { version = "0.7", features = ["tls-rustls"] }
+json-patch = "3"
+jsonptr = "0.6"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+rtnetlink = { git = "https://github.com/rust-netlink/rtnetlink.git", rev = "5fca904b11ba2535fdfac30bf729aa8c10c34c0d" }

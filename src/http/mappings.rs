@@ -1,6 +1,7 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
+use tracing::info;
 
 use crate::error::Error;
 
@@ -10,20 +11,16 @@ pub(crate) struct Mappings {
 }
 
 impl Mappings {
-    pub(crate) fn get_role(&self, namespace: &str, service_account: &str) -> Result<String, Error> {
-        for mapping in &self.mappings {
-            if mapping.service_account == service_account && mapping.namespace == namespace {
-                return Ok(mapping.aws_role.to_owned());
-            }
-        }
-        Err(Error::RoleMappingError(format!(
-            "no role mapped to namespace {} and service account {}",
-            namespace, service_account
-        )))
+    pub(crate) fn get_role(&self, namespace: &str, service_account: &str) -> Option<String> {
+        self.mappings
+            .iter()
+            .find(|s| s.service_account == service_account && s.namespace == namespace)
+            .map(|srm| srm.aws_role.to_owned())
     }
 }
 
 #[derive(Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct ServiceRoleMapping {
     pub service_account: String,
     pub namespace: String,
