@@ -10,6 +10,11 @@ jobs:
     runs-on: homelab-aws-creds-runners
     steps:
     - uses: actions/checkout@v4
+    - name: install g++-multilib
+      run: |
+        set -e
+        sudo apt-get update
+        sudo apt-get install build-essential 
     - uses: dtolnay/rust-toolchain@stable
     - name: Build
       run: cargo build
