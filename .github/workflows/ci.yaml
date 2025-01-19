@@ -7,7 +7,7 @@ permissions:
   packages: write
 jobs:
   docker:
-    runs-on: ubuntu-latest
+    runs-on: homelab-aws-creds-runners
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
