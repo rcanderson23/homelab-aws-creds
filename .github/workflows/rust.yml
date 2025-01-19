@@ -3,17 +3,16 @@ on:
   pull_request:
   push:
     branches: [ main ]
-
 env:
   CARGO_TERM_COLOR: always
-
 jobs:
   build:
-
     runs-on: homelab-aws-creds-runners
-
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
     - name: Build
       run: cargo build
     - name: Clippy
