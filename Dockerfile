@@ -1,4 +1,4 @@
-FROM rust:1.84-bullseye AS builder
+FROM --platform=$TARGETPLATFORM rust:1.84-bullseye AS builder
 
 RUN apt-get update && apt-get -y install ca-certificates && update-ca-certificates
 WORKDIR /app
@@ -8,7 +8,7 @@ COPY . .
 
 RUN cargo build --release
 
-FROM gcr.io/distroless/cc-debian12
+FROM --platform=$TARGETPLATFORM gcr.io/distroless/cc-debian12
 
 WORKDIR /app
 

@@ -76,7 +76,7 @@ impl IntoResponse for CredentialError {
 
 pub(crate) fn new_agent_router(agent_state: AgentState) -> Router {
     let rt = Router::new()
-        .route("/v1/container_credentials", get(container_credentials))
+        .route("/v1/container-credentials", get(container_credentials))
         .with_state(agent_state);
     add_default_middleware(rt)
 }
