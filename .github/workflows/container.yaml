@@ -39,13 +39,13 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push by digest
-        id: build
-        uses: docker/build-push-action@v6
-        with:
-          platforms: ${{ matrix.platform }}
-          labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,"name=${{ env.GHCR_REPO }}",push-by-digest=true,name-canonical=true,push=true
+      #- name: Build and push by digest
+      #  id: build
+      #  uses: docker/build-push-action@v6
+      #  with:
+      #    platforms: ${{ matrix.platform }}
+      #    labels: ${{ steps.meta.outputs.labels }}
+      #    outputs: type=image,"name=${{ env.GHCR_REPO }}",push-by-digest=true,name-canonical=true,push=true
 
       - name: Build and push latest
         if: github.ref == 'refs/heads/main'
