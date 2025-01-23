@@ -8,6 +8,7 @@ use anyhow::anyhow;
 use anyhow::Error;
 use metrics::status_router;
 use metrics::StatusHandler;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::net::TcpListener;
 use tokio::task::JoinError;
@@ -21,26 +22,26 @@ use crate::config::AgentConfig;
 use crate::config::CommonConfig;
 use crate::config::WebhookConfig;
 
-pub async fn serve_agent(cfg: AgentConfig) -> Result<(), Error> {
+pub async fn serve_agent(cfg: Arc<AgentConfig>) -> Result<(), Error> {
     install_crypto()?;
     let agent_cancel = CancellationToken::new();
-    let path = cfg.common_config.role_mapping_path.clone();
     let agent_handle = tokio::spawn({
+        let cfg = cfg.clone();
         let cancel = agent_cancel.clone();
-        async move { agent::start_agent(cancel, path).await }
+        async move { agent::start_agent(cancel, cfg).await }
     });
     serve(&cfg.common_config, agent_handle, agent_cancel).await
 }
 
-pub async fn serve_webhook(cfg: WebhookConfig) -> Result<(), Error> {
+pub async fn serve_webhook(cfg: Arc<WebhookConfig>) -> Result<(), Error> {
     install_crypto()?;
-    let common_config = cfg.common_config.clone();
     let webhook_cancel = CancellationToken::new();
     let webhook_handle = tokio::spawn({
+        let cfg = cfg.clone();
         let cancel = webhook_cancel.clone();
         async move { webhook::start_webhook(cancel, cfg).await }
     });
-    serve(&common_config, webhook_handle, webhook_cancel).await
+    serve(&cfg.common_config, webhook_handle, webhook_cancel).await
 }
 
 async fn serve(

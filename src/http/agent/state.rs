@@ -68,6 +68,7 @@ pub(crate) struct CredentialError {
     pub message: String,
 }
 
+//TODO: implement proper status code, currently returns 200
 impl IntoResponse for CredentialError {
     fn into_response(self) -> axum::response::Response {
         Json(self).into_response()

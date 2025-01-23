@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::Error;
 use clap::Parser;
 use homelab_aws_creds::config::Cli;
@@ -17,10 +19,14 @@ async fn main() -> Result<(), Error> {
     let cli = Cli::parse();
     match cli.command {
         homelab_aws_creds::config::Commands::Agent(agent_config) => {
-            homelab_aws_creds::http::serve_agent(agent_config).await
+            homelab_aws_creds::http::serve_agent(Arc::new(agent_config)).await
         }
         homelab_aws_creds::config::Commands::Webhook(webhook_config) => {
-            homelab_aws_creds::http::serve_webhook(webhook_config).await
+            homelab_aws_creds::http::serve_webhook(Arc::new(webhook_config)).await
+        }
+        #[cfg(target_os = "linux")]
+        homelab_aws_creds::config::Commands::Netlink => {
+            homelab_aws_creds::netlink::init_local_link().await
         }
     }
 }

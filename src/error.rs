@@ -30,4 +30,7 @@ pub enum Error {
 
     #[error("{0}")]
     RoleMappingError(String),
+
+    #[error("rtnetlink error: {0}")]
+    NetlinkError(#[from] rtnetlink::Error),
 }

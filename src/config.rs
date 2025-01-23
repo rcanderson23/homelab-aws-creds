@@ -1,6 +1,14 @@
+use std::net::{Ipv4Addr, Ipv6Addr};
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
+
+// Container credentials expects this network addr over http
+pub const CONTAINER_IPV4_ADDR: Ipv4Addr = Ipv4Addr::new(169, 254, 170, 23);
+
+#[allow(dead_code)]
+// TODO: implement ipv6 listener
+pub const CONTAINER_IPV6_ADDR: Ipv6Addr = Ipv6Addr::new(0xfd00, 0xec2, 0, 0, 0, 0, 0, 0x23);
 
 #[derive(Debug, Parser)]
 #[command(version, about, long_about = None)]
@@ -13,17 +21,23 @@ pub struct Cli {
 pub enum Commands {
     Agent(AgentConfig),
     Webhook(WebhookConfig),
+    #[cfg(target_os = "linux")]
+    Netlink,
 }
 
 #[derive(Parser, Debug, Clone)]
 pub struct AgentConfig {
     #[command(flatten)]
     pub common_config: CommonConfig,
+
+    /// Server listener for agent
+    #[arg(long, default_value = "169.254.170.23:8080")]
+    pub server_address: String,
 }
 
 #[derive(Parser, Debug, Clone)]
 pub struct WebhookConfig {
-    /// Server listener
+    /// Server listener webhook
     #[arg(long, default_value = "0.0.0.0:8080")]
     pub server_address: String,
 

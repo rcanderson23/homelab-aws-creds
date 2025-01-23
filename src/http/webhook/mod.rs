@@ -18,14 +18,14 @@ use tracing::info;
 
 pub(crate) async fn start_webhook(
     cancel: CancellationToken,
-    cfg: WebhookConfig,
+    cfg: Arc<WebhookConfig>,
 ) -> Result<(), Error> {
-    let role_mappings = mappings::load_mappings(cfg.common_config.role_mapping_path).await?;
+    let role_mappings = mappings::load_mappings(&cfg.common_config.role_mapping_path).await?;
     let router = new_webhook_router(WebhookState::new(
         Arc::new(role_mappings),
         cfg.server_address.clone(),
     ));
-    let tls_config = create_tls_config(cfg.cert, cfg.key)?;
+    let tls_config = create_tls_config(&cfg.cert, &cfg.key)?;
 
     let handle = axum_server::Handle::new();
     let shutdown_handle = handle.clone();
