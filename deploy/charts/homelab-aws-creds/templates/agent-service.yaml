@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "homelab-aws-creds.fullname" . }}-agent
+  labels:
+    {{- include "homelab-aws-creds.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.agent.service.type }}
+  ports:
+    - port: {{ .Values.agent.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: {{ .Values.agent.metrics.port }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+  selector:
+    {{- include "homelab-aws-creds.selectorLabels" . | nindent 4 }}
