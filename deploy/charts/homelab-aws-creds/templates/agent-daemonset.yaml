@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "homelab-aws-creds.fullname" . }}-agent
+  labels:
+    {{- include "homelab-aws-creds.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "homelab-aws-creds.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.agent.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "homelab-aws-creds.labels" . | nindent 8 }}
+        {{- with .Values.agent.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if not .Values.agent.useCiliumRedirect }}
+      hostNetwork: true
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "homelab-aws-creds.agent.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.agent.podSecurityContext | nindent 8 }}
+      {{- if not .Values.agent.useCiliumRedirect }}
+      initContainers:
+        - name: {{ .Chart.Name }}
+          args:
+          - netlink
+          securityContext:
+            privileged: true
+          image: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          args:
+          - agent
+          - --role-mapping-path=/config/mappings.yaml
+          {{- if not .Values.agent.useCiliumRedirect }}
+          - --server-address=169.254.170.23:{{ .Values.agent.service.port }}
+          {{- else }}
+          - --server-address=0.0.0.0:{{ .Values.agent.service.port }}
+          {{- end }}
+          - --metrics-address=0.0.0.0:{{ .Values.agent.metrics.port }}
+          {{- with .Values.agent.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.agent.securityContext | nindent 12 }}
+          image: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.agent.metrics.port }}
+              protocol: TCP
+            - name: http
+              containerPort: {{ .Values.agent.service.port }}
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.agent.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.agent.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.agent.resources | nindent 12 }}
+          volumeMounts:
+          - name: role-mapping
+            mountPath: /config
+            readOnly: true
+          {{- with .Values.agent.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+      - name: role-mapping
+        secret:
+          secretName: {{ include "homelab-aws-creds.serviceMapping.secretName" . }}
+      {{- with .Values.agent.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agent.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agent.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agent.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

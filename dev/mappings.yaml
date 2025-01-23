@@ -1,0 +1,4 @@
+mappings:
+  - serviceAccount: test
+    namespace: default
+    awsRole: arn:aws:iam::210920726206:role/assume-read-only

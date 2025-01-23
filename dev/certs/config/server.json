@@ -1,0 +1,20 @@
+{
+  "CN": "server.kproxy.internal",
+  "hosts": [
+    "127.0.0.1",
+    "localhost"
+  ],
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "US",
+      "L": "Helena",
+      "O": "Dev",
+      "OU": "kproxy",
+      "ST": "Montana"
+    }
+  ]
+}

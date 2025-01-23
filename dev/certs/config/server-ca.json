@@ -1,0 +1,16 @@
+{
+  "CN": "webhook.internal",
+  "key": {
+    "algo": "rsa",
+    "size": 4096
+  },
+  "names": [
+    {
+      "C": "US",
+      "L": "Helena",
+      "O": "Dev",
+      "OU": "webhook",
+      "ST": "Montana"
+    }
+  ]
+}

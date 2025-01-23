@@ -1,0 +1,1 @@
+1. Set the environment vars AWS_CONTAINER_CREDENTIALS_FULL_URI=http://{{ .Release.Name }}.{{ .Release.Namespace }}.svc:{{ .Values.agent.service.port }} and AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE=/var/run/secrets/kubernetes.io/token

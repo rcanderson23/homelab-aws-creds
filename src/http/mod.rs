@@ -1,46 +1,68 @@
-pub(crate) mod app;
-pub(crate) mod mappings;
-pub(crate) mod metrics;
-pub(crate) mod middleware;
-pub(crate) mod server;
+mod agent;
+mod mappings;
+mod metrics;
+mod middleware;
+mod webhook;
 
 use anyhow::anyhow;
 use anyhow::Error;
+use metrics::status_router;
+use metrics::StatusHandler;
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::net::TcpListener;
 use tokio::task::JoinError;
+use tokio::task::JoinHandle;
 use tokio::time::sleep;
 use tokio_util::sync::CancellationToken;
 use tracing::error;
 use tracing::info;
 
-use super::config::Config;
+use crate::config::AgentConfig;
+use crate::config::CommonConfig;
+use crate::config::WebhookConfig;
 
-pub async fn serve(cfg: Config) -> Result<(), Error> {
-    let crypto_provider = tokio_rustls::rustls::crypto::aws_lc_rs::default_provider();
-    crypto_provider
-        .install_default()
-        .map_err(|_| anyhow!("failed to install crypto provider"))?;
+pub async fn serve_agent(cfg: Arc<AgentConfig>) -> Result<(), Error> {
+    install_crypto()?;
+    let agent_cancel = CancellationToken::new();
+    let agent_handle = tokio::spawn({
+        let cfg = cfg.clone();
+        let cancel = agent_cancel.clone();
+        async move { agent::start_agent(cancel, cfg).await }
+    });
+    serve(&cfg.common_config, agent_handle, agent_cancel).await
+}
 
+pub async fn serve_webhook(cfg: Arc<WebhookConfig>) -> Result<(), Error> {
+    install_crypto()?;
+    let webhook_cancel = CancellationToken::new();
+    let webhook_handle = tokio::spawn({
+        let cfg = cfg.clone();
+        let cancel = webhook_cancel.clone();
+        async move { webhook::start_webhook(cancel, cfg).await }
+    });
+    serve(&cfg.common_config, webhook_handle, webhook_cancel).await
+}
+
+async fn serve(
+    cfg: &CommonConfig,
+    mut server_handle: JoinHandle<Result<(), Error>>,
+    server_cancel: CancellationToken,
+) -> Result<(), Error> {
     // setup cancellation for graceful shutdown
     let metrics_cancel = CancellationToken::new();
     let metrics_ready = CancellationToken::new();
-    let server_cancel = CancellationToken::new();
+
     let metrics_addr = cfg.metrics_address.clone();
 
     // start metrics server
     let mut metrics_handle = tokio::spawn({
         let cancel = metrics_cancel.clone();
         let ready = metrics_ready.clone();
-        async move { server::start_metrics_server(cancel, ready, &metrics_addr).await }
+        async move { start_metrics_server(cancel, ready, &metrics_addr).await }
     });
 
     let ready_grace = cfg.ready_grace_period;
-
-    // start application server
-    let mut server_handle = tokio::spawn({
-        let cancel = server_cancel.clone();
-        async move { server::start_server(cancel, cfg).await }
-    });
 
     // create shutdown signal handler
     let mut shutdown_handle = tokio::spawn(async move { shutdown_signal().await });
@@ -64,6 +86,21 @@ pub async fn serve(cfg: Config) -> Result<(), Error> {
             },
     };
 
+    Ok(())
+}
+
+async fn start_metrics_server(
+    cancel: CancellationToken,
+    ready: CancellationToken,
+    addr: &str,
+) -> Result<(), Error> {
+    let listener = TcpListener::bind(addr).await?;
+    info!("metrics listening on {}", addr);
+
+    let app = status_router(StatusHandler::try_new(ready)?)?;
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_server(cancel))
+        .await?;
     Ok(())
 }
 
@@ -111,4 +148,11 @@ async fn shutdown_signal() {
         },
         _ = terminate => {},
     }
+}
+
+fn install_crypto() -> Result<(), Error> {
+    let crypto_provider = tokio_rustls::rustls::crypto::aws_lc_rs::default_provider();
+    crypto_provider
+        .install_default()
+        .map_err(|_| anyhow!("failed to install crypto provider"))
 }
