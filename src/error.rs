@@ -31,6 +31,7 @@ pub enum Error {
     #[error("{0}")]
     RoleMappingError(String),
 
+    #[cfg(target_os = "linux")]
     #[error("rtnetlink error: {0}")]
     NetlinkError(#[from] rtnetlink::Error),
 }
