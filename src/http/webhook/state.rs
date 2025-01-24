@@ -1,4 +1,5 @@
 use super::mappings::Mappings;
+use crate::config::CONTAINER_IPV4_ADDR;
 use crate::http::middleware::add_default_middleware;
 use axum::extract::State;
 use axum::routing::post;
@@ -76,8 +77,8 @@ async fn mutate_pod_handler(
                             EnvVar {
                                 name: "AWS_CONTAINER_CREDENTIALS_FULL_URI".to_string(),
                                 value: Some(format!(
-                                    "http://{}/v1/container_credentials",
-                                    state.server_address
+                                    "http://{}/v1/container-credentials",
+                                    CONTAINER_IPV4_ADDR
                                 )),
                                 ..Default::default()
                             },
@@ -98,14 +99,13 @@ async fn mutate_pod_handler(
                             "containers",
                             idx.to_string().as_str(),
                             "env",
-                            "-",
                         ]),
                         value: serde_json::to_value(vec![
                             EnvVar {
                                 name: "AWS_CONTAINER_CREDENTIALS_FULL_URI".to_string(),
                                 value: Some(format!(
-                                    "http://{}/v1/container_credentials",
-                                    state.server_address
+                                    "http://{}/v1/container-credentials",
+                                    CONTAINER_IPV4_ADDR
                                 )),
                                 ..Default::default()
                             },
