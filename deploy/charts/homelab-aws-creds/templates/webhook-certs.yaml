@@ -1,0 +1,46 @@
+{{- if and .Values.webhook.enabled .Values.webhook.cert.certManager.enabled -}}
+{{- if not .Values.webhook.cert.certManager.issuerRef -}}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ template "homelab-aws-creds.fullname" . }}-self-signed-issuer
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ template "homelab-aws-creds.fullname" . }}-root-cert
+spec:
+  secretName: {{ template "homelab-aws-creds.fullname" . }}-root-cert
+  duration: {{ .Values.webhook.cert.certManager.rootCert.duration | default "43800h0m0s" | quote }}
+  issuerRef:
+    name: {{ template "homelab-aws-creds.fullname" . }}-self-signed-issuer
+  commonName: "ca.webhook.homelab-aws-creds"
+  isCA: true
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ template "homelab-aws-creds.fullname" . }}-root-issuer
+spec:
+  ca:
+    secretName: {{ template "homelab-aws-creds.fullname" . }}-root-cert
+{{- end }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ template "homelab-aws-creds.fullname" . }}-webhook
+spec:
+  secretName: {{ template "homelab-aws-creds.webhook.cert.secretName" . }}
+  duration: {{ .Values.webhook.cert.certManager.admissionCert.duration | default "8760h0m0s" | quote }}
+  issuerRef:
+    {{- if .Values.webhook.cert.certManager.issuerRef }}
+    {{- toYaml .Values.webhook.cert.certManager.issuerRef | nindent 4 }}
+    {{- else }}
+    name: {{ template "homelab-aws-creds.fullname" . }}-root-issuer
+    {{- end }}
+  dnsNames:
+    {{- include "homelab-aws-creds.webhook.cert.dnsNames" . | splitList "\n" | toYaml | nindent 4 }}
+{{- end -}}

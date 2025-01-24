@@ -1,0 +1,93 @@
+{{- if .Values.webhook.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "homelab-aws-creds.fullname" . }}-webhook
+  labels:
+    {{- include "homelab-aws-creds.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "homelab-aws-creds.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.webhook.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "homelab-aws-creds.labels" . | nindent 8 }}
+        {{- with .Values.webhook.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.webhook.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "homelab-aws-creds.webhook.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.webhook.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          args:
+          - webhook
+          - --role-mapping-path=/config/mappings.yaml
+          - --server-address=0.0.0.0:{{ .Values.webhook.service.port }}
+          - --metrics-address=0.0.0.0:{{ .Values.webhook.metrics.port }}
+          - --cert=/cert/tls.crt
+          - --key=/cert/tls.key
+          {{- with .Values.webhook.env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          securityContext:
+            {{- toYaml .Values.webhook.securityContext | nindent 12 }}
+          image: "{{ .Values.webhook.image.repository }}:{{ .Values.agent.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.webhook.image.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.webhook.metrics.port }}
+              protocol: TCP
+            - name: https
+              containerPort: {{ .Values.webhook.service.port }}
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.webhook.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.webhook.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.webhook.resources | nindent 12 }}
+          volumeMounts:
+          - name: role-mapping
+            mountPath: /config
+            readOnly: true
+          - name: cert
+            mountPath: /cert
+            readOnly: true
+          {{- with .Values.webhook.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+      - name: role-mapping
+        secret:
+          secretName: {{ include "homelab-aws-creds.serviceMapping.secretName" . }}
+      - name: cert
+        secret:
+          secretName: {{ include "homelab-aws-creds.webhook.cert.secretName" . }}
+      {{- with .Values.webhook.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.webhook.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.webhook.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.webhook.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

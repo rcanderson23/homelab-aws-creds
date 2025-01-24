@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "homelab-aws-creds.fullname" . }}-webhook
+  labels:
+    {{- include "homelab-aws-creds.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.webhook.service.type }}
+  ports:
+    - port: 443
+      targetPort: https
+      protocol: TCP
+      name: https
+    - port: {{ .Values.webhook.metrics.port }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+  selector:
+    {{- include "homelab-aws-creds.selectorLabels" . | nindent 4 }}

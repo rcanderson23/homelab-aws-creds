@@ -51,7 +51,7 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Create the name of the service account to use
+Create the name of the agent service account to use
 */}}
 {{- define "homelab-aws-creds.agent.serviceAccountName" -}}
 {{- if .Values.agent.serviceAccount.create }}
@@ -62,13 +62,48 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
+Create the name of the webhook service account to use
+*/}}
+{{- define "homelab-aws-creds.webhook.serviceAccountName" -}}
+{{- if .Values.webhook.serviceAccount.create }}
+{{- default (include "homelab-aws-creds.fullname" .) .Values.webhook.serviceAccount.name }}-agent
+{{- else }}
+{{- default "default" .Values.webhook.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{/*
 Create the name of the aws roles/service account mapping secret name
 */}}
 {{- define "homelab-aws-creds.serviceMapping.secretName" -}}
 {{- if .Values.useExistingMappingSecret -}}
 {{- .Values.useExistingMappingSecret -}}
 {{- else -}}
-{{- default (include "homelab-aws-creds.fullname" .) .Values.agent.serviceAccount.name }}-agent
 {{- include "homelab-aws-creds.fullname" . -}}-role-mappings
-{{- end -}}
-{{- end -}}
+{{- end }}
+{{- end }}
+
+{{/*
+Create the name of the aws roles/service account mapping secret name
+*/}}
+{{- define "homelab-aws-creds.webhook.cert.secretName" -}}
+{{- if .Values.webhook.useExistingCertSecret -}}
+{{- .Values.webhook.cert.useExistingSecret -}}
+{{- else -}}
+{{- include "homelab-aws-creds.fullname" . -}}-webhook
+{{- end }}
+{{- end }}
+
+{{/*
+Create the dnsNames for the webhook
+*/}}
+{{- define "homelab-aws-creds.webhook.cert.dnsNames" -}}
+{{- $fullname := include "homelab-aws-creds.fullname" . }}
+{{- $namespace := .Release.Namespace }}
+{{- $fullname }}
+{{ $fullname }}.{{ $namespace }}.svc
+{{- if .Values.webhook.enabled }}
+{{ $fullname }}-webhook
+{{ $fullname }}-webhook.{{ $namespace }}.svc
+{{- end }}
+{{- end }}

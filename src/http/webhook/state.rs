@@ -52,6 +52,7 @@ async fn mutate_pod_handler(
             return Json(AdmissionResponse::invalid(e.to_string()).into_review());
         }
     };
+    println!("{}", serde_json::to_string(&req).unwrap());
     let mut res = AdmissionResponse::from(&req);
     let og_res = res.clone();
     let mut patches = vec![];
