@@ -120,6 +120,7 @@ async fn mutate_pod_handler(
                 }
             }
         }
+        dbg!("{}", &patches);
         res = match res.with_patch(json_patch::Patch(patches)) {
             Ok(p) => p,
             Err(_) => return Json(og_res.into_review()),
