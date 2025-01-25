@@ -1,3 +1,4 @@
+mod patch;
 mod state;
 
 use std::path::Path;
