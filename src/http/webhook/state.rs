@@ -12,7 +12,7 @@ use kube::api::DynamicObject;
 use kube::core::admission::{AdmissionRequest, AdmissionResponse, AdmissionReview};
 use kube::ResourceExt;
 use std::sync::Arc;
-use tracing::{error, info};
+use tracing::{error, info, trace};
 
 #[derive(Clone)]
 pub(crate) struct WebhookState {
@@ -71,12 +71,12 @@ async fn mutate_pod_handler(
         ) {
             patch = create_pod_patch(pod);
         }
-        dbg!("{}", &patch);
+        trace!("{}", &patch);
         res = match res.with_patch(patch) {
             Ok(p) => p,
             Err(_) => return Json(og_res.into_review()),
         }
     };
-    println!("response: {}", serde_json::to_string(&res).unwrap());
+    trace!("{}", serde_json::to_string(&res).unwrap());
     Json(res.into_review())
 }
