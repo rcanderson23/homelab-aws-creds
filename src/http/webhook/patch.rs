@@ -16,23 +16,21 @@ pub fn create_pod_patch(pod: &Pod) -> Patch {
         } else {
             patches.push(json_patch::PatchOperation::Add(json_patch::AddOperation {
                 path: path.clone(),
-                value: serde_json::to_value(EnvVar {
-                    name: "AWS_CONTAINER_CREDENTIALS_FULL_URI".to_string(),
-                    value: Some(format!(
-                        "http://{}:8080/v1/container-credentials",
-                        CONTAINER_IPV4_ADDR
-                    )),
-                    ..Default::default()
-                })
-                .unwrap(),
-            }));
-            patches.push(json_patch::PatchOperation::Add(json_patch::AddOperation {
-                path,
-                value: serde_json::to_value(EnvVar {
-                    name: "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE".to_string(),
-                    value: Some("/var/run/secrets/kubernetes.io/serviceaccount/token".into()),
-                    ..Default::default()
-                })
+                value: serde_json::to_value(vec![
+                    EnvVar {
+                        name: "AWS_CONTAINER_CREDENTIALS_FULL_URI".to_string(),
+                        value: Some(format!(
+                            "http://{}:8080/v1/container-credentials",
+                            CONTAINER_IPV4_ADDR
+                        )),
+                        ..Default::default()
+                    },
+                    EnvVar {
+                        name: "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE".to_string(),
+                        value: Some("/var/run/secrets/kubernetes.io/serviceaccount/token".into()),
+                        ..Default::default()
+                    },
+                ])
                 .unwrap(),
             }));
         };
@@ -79,8 +77,7 @@ mod tests {
         assert_eq!(
             create_pod_patch(&pod),
             from_value::<Patch>(json!([
-              { "op": "add", "path": "/spec/containers/0/env", "value": {"name":"AWS_CONTAINER_CREDENTIALS_FULL_URI", "value":"http://169.254.170.23:8080/v1/container-credentials"} },
-              { "op": "add", "path": "/spec/containers/0/env", "value": {"name":"AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE", "value":"/var/run/secrets/kubernetes.io/serviceaccount/token"} },
+              { "op": "add", "path": "/spec/containers/0/env", "value": [{"name":"AWS_CONTAINER_CREDENTIALS_FULL_URI", "value":"http://169.254.170.23:8080/v1/container-credentials"},{"name":"AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE", "value":"/var/run/secrets/kubernetes.io/serviceaccount/token"}] },
             ]))
             .unwrap()
         );
