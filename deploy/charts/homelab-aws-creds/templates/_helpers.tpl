@@ -84,7 +84,7 @@ Create the name of the aws roles/service account mapping secret name
 {{- end }}
 
 {{/*
-Create the name of the aws roles/service account mapping secret name
+Create the name of the cert secret
 */}}
 {{- define "homelab-aws-creds.webhook.cert.secretName" -}}
 {{- if .Values.webhook.useExistingCertSecret -}}

@@ -1,18 +1,16 @@
 use super::mappings::Mappings;
-use crate::config::CONTAINER_IPV4_ADDR;
 use crate::http::middleware::add_default_middleware;
 use crate::http::webhook::patch::create_pod_patch;
 use axum::extract::State;
 use axum::routing::post;
 use axum::{Json, Router};
 use json_patch::Patch;
-use jsonptr::PointerBuf;
-use k8s_openapi::api::core::v1::{EnvVar, Pod};
+use k8s_openapi::api::core::v1::Pod;
 use kube::api::DynamicObject;
 use kube::core::admission::{AdmissionRequest, AdmissionResponse, AdmissionReview};
 use kube::ResourceExt;
 use std::sync::Arc;
-use tracing::{error, info, trace};
+use tracing::{error, trace};
 
 #[derive(Clone)]
 pub(crate) struct WebhookState {
@@ -62,7 +60,6 @@ async fn mutate_pod_handler(
             return Json(AdmissionResponse::invalid(e.to_string()).into_review());
         }
     };
-    println!("request: {}", serde_json::to_string(&req).unwrap());
     let mut res = AdmissionResponse::from(&req);
     let og_res = res.clone();
     let mut patch = Patch(vec![]);
@@ -83,6 +80,6 @@ async fn mutate_pod_handler(
             Err(_) => return Json(og_res.into_review()),
         }
     };
-    trace!("{}", serde_json::to_string(&res).unwrap());
+    trace!("{}", serde_json::to_string(&res).unwrap_or_default());
     Json(res.into_review())
 }
