@@ -36,7 +36,7 @@ spec:
           - --server-address=0.0.0.0:{{ .Values.webhook.service.port }}
           - --metrics-address=0.0.0.0:{{ .Values.webhook.metrics.port }}
           - --agent-address=169.254.170.23:{{ .Values.agent.service.port }}
-          - --region={{ .Values.webhook.region }}
+          - --aws-region={{ .Values.webhook.region }}
           - --cert=/cert/tls.crt
           - --key=/cert/tls.key
           {{- with .Values.webhook.env }}
