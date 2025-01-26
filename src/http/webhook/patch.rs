@@ -2,9 +2,7 @@ use json_patch::Patch;
 use jsonptr::PointerBuf;
 use k8s_openapi::api::core::v1::{EnvVar, Pod};
 
-use crate::config::CONTAINER_IPV4_ADDR;
-
-pub fn create_pod_patch(pod: &Pod) -> Patch {
+pub fn create_pod_patch(pod: &Pod, agent_address: &str, region: &str) -> Patch {
     let Some(ref spec) = pod.spec else {
         return Patch(vec![]);
     };
@@ -20,10 +18,7 @@ pub fn create_pod_patch(pod: &Pod) -> Patch {
                     path: path.clone(),
                     value: serde_json::to_value(EnvVar {
                         name: "AWS_CONTAINER_CREDENTIALS_FULL_URI".to_string(),
-                        value: Some(format!(
-                            "http://{}:8080/v1/container-credentials",
-                            CONTAINER_IPV4_ADDR
-                        )),
+                        value: Some(format!("http://{}/v1/container-credentials", agent_address)),
                         ..Default::default()
                     })
                     .unwrap(),
@@ -38,6 +33,26 @@ pub fn create_pod_patch(pod: &Pod) -> Patch {
                     .unwrap(),
                 }));
             }
+            if !contains_aws_region_env(env) {
+                patches.push(json_patch::PatchOperation::Add(json_patch::AddOperation {
+                    path: path.clone(),
+                    value: serde_json::to_value(EnvVar {
+                        name: "AWS_DEFAULT_REGION".to_string(),
+                        value: Some(region.into()),
+                        ..Default::default()
+                    })
+                    .unwrap(),
+                }));
+                patches.push(json_patch::PatchOperation::Add(json_patch::AddOperation {
+                    path: path.clone(),
+                    value: serde_json::to_value(EnvVar {
+                        name: "AWS_REGION".to_string(),
+                        value: Some(region.into()),
+                        ..Default::default()
+                    })
+                    .unwrap(),
+                }));
+            }
         } else {
             let path = PointerBuf::from_tokens(tokens);
             patches.push(json_patch::PatchOperation::Add(json_patch::AddOperation {
@@ -45,15 +60,22 @@ pub fn create_pod_patch(pod: &Pod) -> Patch {
                 value: serde_json::to_value(vec![
                     EnvVar {
                         name: "AWS_CONTAINER_CREDENTIALS_FULL_URI".to_string(),
-                        value: Some(format!(
-                            "http://{}:8080/v1/container-credentials",
-                            CONTAINER_IPV4_ADDR
-                        )),
+                        value: Some(format!("http://{}/v1/container-credentials", agent_address)),
                         ..Default::default()
                     },
                     EnvVar {
                         name: "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE".to_string(),
                         value: Some("/var/run/secrets/kubernetes.io/serviceaccount/token".into()),
+                        ..Default::default()
+                    },
+                    EnvVar {
+                        name: "AWS_DEFAULT_REGION".to_string(),
+                        value: Some(region.to_string()),
+                        ..Default::default()
+                    },
+                    EnvVar {
+                        name: "AWS_REGION".to_string(),
+                        value: Some(region.to_string()),
                         ..Default::default()
                     },
                 ])
@@ -90,6 +112,8 @@ mod tests {
 
     #[test]
     fn test_create_pod_patch() {
+        let agent_address = "169.254.170.23:8080";
+        let region = "us-west-2";
         let pod = Pod {
             spec: Some(PodSpec {
                 containers: vec![Container {
@@ -102,7 +126,7 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(
-            create_pod_patch(&pod),
+            create_pod_patch(&pod, agent_address, region),
             from_value::<Patch>(json!([
               {
                 "op": "add",
@@ -110,11 +134,19 @@ mod tests {
                 "value": [
                     {
                         "name":"AWS_CONTAINER_CREDENTIALS_FULL_URI",
-                        "value":"http://169.254.170.23:8080/v1/container-credentials"
+                        "value": format!("http://{}/v1/container-credentials", agent_address)
                     },
                     {
                         "name":"AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE",
                         "value":"/var/run/secrets/kubernetes.io/serviceaccount/token"
+                    },
+                    {
+                        "name":"AWS_DEFAULT_REGION",
+                        "value": region,
+                    },
+                    {
+                        "name":"AWS_REGION",
+                        "value": region,
                     }
                 ]
               },
@@ -137,7 +169,7 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(
-            create_pod_patch(&pod),
+            create_pod_patch(&pod, agent_address, region),
             from_value::<Patch>(json!([
               {
                 "op": "add",
@@ -145,7 +177,7 @@ mod tests {
                 "value":
                     {
                         "name":"AWS_CONTAINER_CREDENTIALS_FULL_URI",
-                        "value":"http://169.254.170.23:8080/v1/container-credentials"
+                        "value": format!("http://{}/v1/container-credentials", agent_address)
                     }
               },
               {
@@ -155,6 +187,24 @@ mod tests {
                     {
                         "name":"AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE",
                         "value":"/var/run/secrets/kubernetes.io/serviceaccount/token"
+                    }
+              },
+              {
+                "op": "add",
+                "path": "/spec/containers/0/env/-",
+                "value":
+                    {
+                        "name":"AWS_DEFAULT_REGION",
+                        "value": region,
+                    }
+              },
+              {
+                "op": "add",
+                "path": "/spec/containers/0/env/-",
+                "value":
+                    {
+                        "name":"AWS_REGION",
+                        "value": region,
                     }
               },
             ]))
@@ -188,7 +238,7 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(
-            create_pod_patch(&pod),
+            create_pod_patch(&pod, agent_address, region),
             from_value::<Patch>(json!([
               {
                 "op": "add",
@@ -210,6 +260,24 @@ mod tests {
               },
               {
                 "op": "add",
+                "path": "/spec/containers/0/env/-",
+                "value":
+                    {
+                        "name":"AWS_DEFAULT_REGION",
+                        "value": region,
+                    }
+              },
+              {
+                "op": "add",
+                "path": "/spec/containers/0/env/-",
+                "value":
+                    {
+                        "name":"AWS_REGION",
+                        "value": region,
+                    }
+              },
+              {
+                "op": "add",
                 "path": "/spec/containers/1/env/-",
                 "value":
                     {
@@ -224,6 +292,24 @@ mod tests {
                     {
                         "name":"AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE",
                         "value":"/var/run/secrets/kubernetes.io/serviceaccount/token"
+                    }
+              },
+              {
+                "op": "add",
+                "path": "/spec/containers/1/env/-",
+                "value":
+                    {
+                        "name":"AWS_DEFAULT_REGION",
+                        "value": region,
+                    }
+              },
+              {
+                "op": "add",
+                "path": "/spec/containers/1/env/-",
+                "value":
+                    {
+                        "name":"AWS_REGION",
+                        "value": region,
                     }
               },
             ]))

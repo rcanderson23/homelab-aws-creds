@@ -73,6 +73,8 @@ agent:
 webhook:
   enabled: false
 
+  region: "us-west-2"
+
   mutatingWebhook:
     enabled: false
     annotations: {}

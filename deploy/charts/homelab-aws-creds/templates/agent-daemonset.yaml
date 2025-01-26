@@ -45,10 +45,10 @@ spec:
           args:
           - agent
           - --role-mapping-path=/config/mappings.yaml
-          {{- if not .Values.agent.useCiliumRedirect }}
-          - --server-address=169.254.170.23:{{ .Values.agent.service.port }}
-          {{- else }}
+          {{- if .Values.agent.useCiliumRedirect }}
           - --server-address=0.0.0.0:{{ .Values.agent.service.port }}
+          {{- else }}
+          - --server-address=169.254.170.23:{{ .Values.agent.service.port }}
           {{- end }}
           - --metrics-address=0.0.0.0:{{ .Values.agent.metrics.port }}
           {{- with .Values.agent.env }}

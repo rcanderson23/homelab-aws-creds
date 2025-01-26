@@ -25,6 +25,7 @@ pub(crate) async fn start_webhook(
     let router = new_webhook_router(WebhookState::new(
         Arc::new(role_mappings),
         cfg.server_address.clone(),
+        cfg.aws_region.clone(),
     ));
     let tls_config = create_tls_config(&cfg.cert, &cfg.key)?;
 

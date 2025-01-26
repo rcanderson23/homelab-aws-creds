@@ -17,14 +17,20 @@ use tracing::{error, info, trace};
 #[derive(Clone)]
 pub(crate) struct WebhookState {
     role_mappings: Arc<Mappings>,
-    server_address: String,
+    agent_address: String,
+    aws_region: String,
 }
 
 impl WebhookState {
-    pub(crate) fn new(role_mappings: Arc<Mappings>, server_address: String) -> Self {
+    pub(crate) fn new(
+        role_mappings: Arc<Mappings>,
+        agent_address: String,
+        aws_region: String,
+    ) -> Self {
         Self {
             role_mappings,
-            server_address,
+            agent_address,
+            aws_region,
         }
     }
     fn should_mutate(&self, service_account: Option<String>, namespace: Option<String>) -> bool {
@@ -69,7 +75,7 @@ async fn mutate_pod_handler(
                 .to_owned(),
             pod.namespace(),
         ) {
-            patch = create_pod_patch(pod);
+            patch = create_pod_patch(pod, &state.agent_address, &state.aws_region);
         }
         trace!("{}", &patch);
         res = match res.with_patch(patch) {
