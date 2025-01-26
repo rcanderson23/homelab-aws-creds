@@ -24,7 +24,7 @@ pub(crate) async fn start_webhook(
     let role_mappings = mappings::load_mappings(&cfg.common_config.role_mapping_path).await?;
     let router = new_webhook_router(WebhookState::new(
         Arc::new(role_mappings),
-        cfg.server_address.clone(),
+        cfg.agent_address.clone(),
         cfg.aws_region.clone(),
     ));
     let tls_config = create_tls_config(&cfg.cert, &cfg.key)?;
