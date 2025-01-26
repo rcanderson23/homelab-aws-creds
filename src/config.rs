@@ -42,12 +42,20 @@ pub struct WebhookConfig {
     pub server_address: String,
 
     /// Path to server cert
-    #[arg(long, default_value = "./certs")]
+    #[arg(long)]
     pub cert: PathBuf,
 
     /// Path to private key
     #[arg(long)]
     pub key: PathBuf,
+
+    /// AWS region
+    #[arg(long)]
+    pub aws_region: String,
+
+    /// Server listener for agent
+    #[arg(long, default_value = "169.254.170.23:8080")]
+    pub agent_address: String,
 
     #[command(flatten)]
     pub common_config: CommonConfig,

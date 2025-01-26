@@ -1,36 +1,44 @@
 use super::mappings::Mappings;
 use crate::http::middleware::add_default_middleware;
+use crate::http::webhook::patch::create_pod_patch;
 use axum::extract::State;
 use axum::routing::post;
 use axum::{Json, Router};
-use jsonptr::PointerBuf;
-use k8s_openapi::api::core::v1::{EnvVar, Pod};
+use json_patch::Patch;
+use k8s_openapi::api::core::v1::Pod;
 use kube::api::DynamicObject;
 use kube::core::admission::{AdmissionRequest, AdmissionResponse, AdmissionReview};
 use kube::ResourceExt;
 use std::sync::Arc;
-use tracing::error;
+use tracing::{error, trace};
 
 #[derive(Clone)]
 pub(crate) struct WebhookState {
     role_mappings: Arc<Mappings>,
-    server_address: String,
+    agent_address: String,
+    aws_region: String,
 }
 
 impl WebhookState {
-    pub(crate) fn new(role_mappings: Arc<Mappings>, server_address: String) -> Self {
+    pub(crate) fn new(
+        role_mappings: Arc<Mappings>,
+        agent_address: String,
+        aws_region: String,
+    ) -> Self {
         Self {
             role_mappings,
-            server_address,
+            agent_address,
+            aws_region,
         }
     }
-    fn should_mutate(&self, service_account: &str, namespace: &str) -> bool {
-        if service_account.is_empty() || namespace.is_empty() {
-            return false;
+    fn should_mutate(&self, service_account: Option<String>, namespace: Option<String>) -> bool {
+        if let (Some(sa), Some(ns)) = (service_account, namespace) {
+            self.role_mappings
+                .get_role(ns.as_str(), sa.as_str())
+                .is_some()
+        } else {
+            false
         }
-        self.role_mappings
-            .get_role(namespace, service_account)
-            .is_some()
     }
 }
 
@@ -54,85 +62,24 @@ async fn mutate_pod_handler(
     };
     let mut res = AdmissionResponse::from(&req);
     let og_res = res.clone();
-    let mut patches = vec![];
-    if let Some(pod) = req.object {
-        let ns = pod.namespace().unwrap_or_default();
-        let spec = pod.spec.unwrap_or_default();
+    let mut patch = Patch(vec![]);
+    if let Some(ref pod) = req.object {
         if state.should_mutate(
-            spec.service_account_name.unwrap_or_default().as_str(),
-            ns.as_str(),
+            pod.spec
+                .to_owned()
+                .unwrap_or_default()
+                .service_account
+                .to_owned(),
+            pod.namespace(),
         ) {
-            for (idx, container) in spec.containers.iter().enumerate() {
-                if container.env.is_none() {
-                    patches.push(json_patch::PatchOperation::Add(json_patch::AddOperation {
-                        path: PointerBuf::from_tokens([
-                            "spec",
-                            "containers",
-                            idx.to_string().as_str(),
-                            "env",
-                        ]),
-                        value: serde_json::to_value(vec![
-                            EnvVar {
-                                name: "AWS_CONTAINER_CREDENTIALS_FULL_URI".to_string(),
-                                value: Some(format!(
-                                    "http://{}/v1/container_credentials",
-                                    state.server_address
-                                )),
-                                ..Default::default()
-                            },
-                            EnvVar {
-                                name: "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE".to_string(),
-                                value: Some("/var/run/secrets/kubernetes.io/token".into()),
-                                ..Default::default()
-                            },
-                        ])
-                        .unwrap(),
-                    }));
-                }
-                let env = container.clone().env.unwrap_or_default();
-                if !contains_aws_cred_env(&env) {
-                    patches.push(json_patch::PatchOperation::Add(json_patch::AddOperation {
-                        path: PointerBuf::from_tokens([
-                            "spec",
-                            "containers",
-                            idx.to_string().as_str(),
-                            "env",
-                            "-",
-                        ]),
-                        value: serde_json::to_value(vec![
-                            EnvVar {
-                                name: "AWS_CONTAINER_CREDENTIALS_FULL_URI".to_string(),
-                                value: Some(format!(
-                                    "http://{}/v1/container_credentials",
-                                    state.server_address
-                                )),
-                                ..Default::default()
-                            },
-                            EnvVar {
-                                name: "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE".to_string(),
-                                value: Some("/var/run/secrets/kubernetes.io/token".into()),
-                                ..Default::default()
-                            },
-                        ])
-                        .unwrap(),
-                    }));
-                }
-            }
+            patch = create_pod_patch(pod, &state.agent_address, &state.aws_region);
         }
-        res = match res.with_patch(json_patch::Patch(patches)) {
+        trace!("{}", &patch);
+        res = match res.with_patch(patch) {
             Ok(p) => p,
             Err(_) => return Json(og_res.into_review()),
         }
     };
+    trace!("{}", serde_json::to_string(&res).unwrap_or_default());
     Json(res.into_review())
-}
-
-// checks if the environment variables contain and aws specific
-fn contains_aws_cred_env(env: &[EnvVar]) -> bool {
-    env.iter().any(|nv| {
-        nv.name == "AWS_CONTAINER_CREDENTIALS_FULL_URI"
-            || nv.name == "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"
-            || nv.name == "AWS_CONTAINER_AUTHORIZATION_TOKEN"
-            || nv.name == "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE"
-    })
 }

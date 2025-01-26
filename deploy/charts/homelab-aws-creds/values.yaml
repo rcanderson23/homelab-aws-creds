@@ -5,10 +5,9 @@
 nameOverride: ""
 fullnameOverride: ""
 
-replicaCount: 1
 
 useExistingMappingSecret: ""
-roleServiceAccountMappings: []
+roleServiceAccountMappings: {}
 # mappings:
 # - namespace: default
 #   serviceAccount: test
@@ -23,7 +22,7 @@ agent:
   podSecurityContext: {}
     # fsGroup: 2000
   
-  securityContext: {}
+  securityContext:
     # capabilities:
     #   drop:
     #   - ALL
@@ -33,40 +32,22 @@ agent:
   
   
   resources: {}
-    # limits:
-    #   cpu: 100m
-    #   memory: 128Mi
-    # requests:
-    #   cpu: 100m
-    #   memory: 128Mi
   image:
     repository: ghcr.io/rcanderson23/homelab-aws-creds
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
     tag: "0.1.0"
-  # extra environment variables
   env: []
 
   imagePullSecrets: []
 
   serviceAccount:
-    # Specifies whether a service account should be created
     create: true
-    # Automatically mount a ServiceAccount's API credentials?
     automount: true
-    # Annotations to add to the service account
     annotations: {}
-    # The name of the service account to use.
-    # If not set and create is true, a name is generated using the fullname template
     name: ""
 
-  # Additional volumes on the output Deployment definition.
   volumes: []
-  # - name: foo
-  #   secret:
-  #     secretName: mysecret
-  #     optional: false
-
 
   livenessProbe:
     httpGet:
@@ -81,16 +62,7 @@ agent:
     type: ClusterIP
     port: 8080
 
-
-
-
-
-
-  # Additional volumeMounts on the output Deployment definition.
   volumeMounts: []
-  # - name: foo
-  #   mountPath: "/etc/foo"
-  #   readOnly: true
   
   nodeSelector: {}
   
@@ -99,6 +71,22 @@ agent:
   affinity: {}
 
 webhook:
+  enabled: false
+
+  region: "us-west-2"
+
+  mutatingWebhook:
+    enabled: false
+    annotations: {}
+    labels: {}
+    caBundle: ""
+    timeoutSeconds: 10
+    failurePolicy: ""
+    namespaces: []
+
+
+  replicaCount: 1
+
   podAnnotations: {}
   podLabels: {}
   
@@ -163,11 +151,6 @@ webhook:
     type: ClusterIP
     port: 8080
 
-
-
-
-
-
   # Additional volumeMounts on the output Deployment definition.
   volumeMounts: []
   # - name: foo
@@ -179,3 +162,4 @@ webhook:
   tolerations: []
   
   affinity: {}
+
