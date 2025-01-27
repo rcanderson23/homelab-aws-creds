@@ -1,13 +1,16 @@
 mod patch;
 mod state;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use crate::config::WebhookConfig;
 use crate::http::mappings;
 use anyhow::{anyhow, Error};
 use axum_server::tls_rustls::RustlsConfig;
+use futures::channel::mpsc::{channel, Receiver};
+use futures::{SinkExt, StreamExt};
+use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use state::{new_webhook_router, WebhookState};
 use tokio::select;
 use tokio::task::JoinHandle;
@@ -15,7 +18,7 @@ use tokio_rustls::rustls::pki_types::pem::PemObject;
 use tokio_rustls::rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use tokio_rustls::rustls::{server::WebPkiClientVerifier, ServerConfig as RustlsServerConfig};
 use tokio_util::sync::CancellationToken;
-use tracing::info;
+use tracing::{error, info};
 
 pub(crate) async fn start_webhook(
     cancel: CancellationToken,
@@ -27,16 +30,21 @@ pub(crate) async fn start_webhook(
         cfg.agent_address.clone(),
         cfg.aws_region.clone(),
     ));
-    let tls_config = create_tls_config(&cfg.cert, &cfg.key)?;
+    let cert = cfg.cert.clone();
+    let key = cfg.key.clone();
+    let tls_config = create_tls_config(&cert, &key)?;
+
+    tokio::spawn(start_tls_watch(tls_config.clone(), cert, key));
 
     let handle = axum_server::Handle::new();
     let shutdown_handle = handle.clone();
+    let server_address = cfg.server_address.clone();
     let h: JoinHandle<Result<(), Error>> = tokio::spawn(async move {
         info!(
             "webhook configured to listen securely on {}",
-            &cfg.server_address
+            server_address
         );
-        axum_server::tls_rustls::bind_rustls(cfg.server_address.parse()?, tls_config)
+        axum_server::tls_rustls::bind_rustls(server_address.parse()?, tls_config)
             .handle(handle)
             .serve(router.into_make_service())
             .await?;
@@ -54,6 +62,50 @@ pub(crate) async fn start_webhook(
     }
     shutdown_handle.graceful_shutdown(None);
     Ok(())
+}
+
+fn create_watcher() -> Result<(RecommendedWatcher, Receiver<notify::Result<Event>>), Error> {
+    let (mut tx, rx) = channel(1);
+    let watcher = RecommendedWatcher::new(
+        move |res| {
+            futures::executor::block_on(async {
+                if let Err(e) = tx.send(res).await {
+                    error!("failed to tx event: {}", e)
+                }
+            })
+        },
+        Config::default(),
+    )?;
+
+    Ok((watcher, rx))
+}
+
+async fn start_tls_watch(
+    tls_config: RustlsConfig,
+    cert: PathBuf,
+    key: PathBuf,
+) -> Result<(), Error> {
+    let (mut watcher, mut rx) = create_watcher()?;
+    watcher.watch(&cert, RecursiveMode::NonRecursive)?;
+
+    while let Some(res) = rx.next().await {
+        match res {
+            Ok(event) => {
+                if event.kind.is_modify() {
+                    reload_tls(&tls_config, &cert, &key).await
+                }
+            }
+            Err(e) => println!("watch error: {:?}", e),
+        }
+    }
+    Ok(())
+}
+
+async fn reload_tls(config: &RustlsConfig, cert: impl AsRef<Path>, key: impl AsRef<Path>) {
+    match config.reload_from_pem_file(cert, key).await {
+        Ok(_) => info!("successfully reloaded tls config"),
+        Err(e) => error!("failed to reload tls config: {}", e),
+    }
 }
 
 fn create_tls_config(

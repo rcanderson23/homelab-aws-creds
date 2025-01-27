@@ -27,7 +27,7 @@ pub(crate) struct ServiceRoleMapping {
 }
 
 pub(crate) async fn load_mappings(path: impl AsRef<Path>) -> Result<Mappings, Error> {
-    Ok(serde_yml::from_str(
+    Ok(serde_yaml_ng::from_str(
         tokio::fs::read_to_string(path).await?.as_str(),
     )?)
 }
