@@ -45,7 +45,7 @@ tower-service = "0.3"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 thiserror = "2"
-serde_yml = "0.0.12"
+serde_yaml_ng = "0.10.0"
 ahash = "0.8"
 axum-extra = { version = "0.10", features = ["typed-header"]}
 headers = "0.4.0"
@@ -54,6 +54,8 @@ ipnetwork = "0.21"
 axum-server = { version = "0.7", features = ["tls-rustls"] }
 json-patch = "3"
 jsonptr = "0.6"
+notify = "8"
+arc-swap = "1.7.1"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 rtnetlink = { git = "https://github.com/rust-netlink/rtnetlink.git", rev = "5fca904b11ba2535fdfac30bf729aa8c10c34c0d" }

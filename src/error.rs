@@ -17,7 +17,7 @@ pub enum Error {
     IoError(#[from] tokio::io::Error),
 
     #[error("error serializing/deserializing: {0}")]
-    SerDeError(#[from] serde_yml::Error),
+    SerDeError(#[from] serde_yaml_ng::Error),
 
     #[error("{0}")]
     KubeError(#[from] kube::error::Error),
