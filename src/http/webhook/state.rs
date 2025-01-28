@@ -1,4 +1,5 @@
 use super::mappings::Mappings;
+use crate::http::mappings::Mapping;
 use crate::http::middleware::add_default_middleware;
 use crate::http::webhook::patch::create_pod_patch;
 use axum::extract::State;
@@ -9,22 +10,17 @@ use k8s_openapi::api::core::v1::Pod;
 use kube::api::DynamicObject;
 use kube::core::admission::{AdmissionRequest, AdmissionResponse, AdmissionReview};
 use kube::ResourceExt;
-use std::sync::Arc;
 use tracing::{error, trace};
 
 #[derive(Clone)]
 pub(crate) struct WebhookState {
-    role_mappings: Arc<Mappings>,
+    role_mappings: Mapping,
     agent_address: String,
     aws_region: String,
 }
 
 impl WebhookState {
-    pub(crate) fn new(
-        role_mappings: Arc<Mappings>,
-        agent_address: String,
-        aws_region: String,
-    ) -> Self {
+    pub(crate) fn new(role_mappings: Mapping, agent_address: String, aws_region: String) -> Self {
         Self {
             role_mappings,
             agent_address,

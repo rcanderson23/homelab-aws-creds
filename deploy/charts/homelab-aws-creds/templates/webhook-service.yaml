@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: {{ include "homelab-aws-creds.fullname" . }}-webhook
   labels:
-    {{- include "homelab-aws-creds.labels" . | nindent 4 }}
+    {{- include "homelab-aws-creds.webhook.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.webhook.service.type }}
   ports:
@@ -16,4 +16,4 @@ spec:
       protocol: TCP
       name: metrics
   selector:
-    {{- include "homelab-aws-creds.selectorLabels" . | nindent 4 }}
+    {{- include "homelab-aws-creds.webhook.selectorLabels" . | nindent 4 }}

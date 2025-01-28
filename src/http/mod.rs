@@ -2,6 +2,7 @@ mod agent;
 mod mappings;
 mod metrics;
 mod middleware;
+mod util;
 mod webhook;
 
 use anyhow::anyhow;

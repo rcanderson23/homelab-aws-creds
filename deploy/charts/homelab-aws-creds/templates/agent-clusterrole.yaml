@@ -3,7 +3,7 @@ kind: ClusterRole
 metadata:
   name: {{ include "homelab-aws-creds.fullname" . }}-agent
   labels:
-    {{- include "homelab-aws-creds.labels" . | nindent 4 }}
+    {{- include "homelab-aws-creds.agent.labels" . | nindent 4 }}
 rules:
   - apiGroups: ["authentication.k8s.io"]
     resources: ["tokenreviews"]

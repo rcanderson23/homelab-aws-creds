@@ -3,11 +3,11 @@ kind: DaemonSet
 metadata:
   name: {{ include "homelab-aws-creds.fullname" . }}-agent
   labels:
-    {{- include "homelab-aws-creds.labels" . | nindent 4 }}
+    {{- include "homelab-aws-creds.agent.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:
-      {{- include "homelab-aws-creds.selectorLabels" . | nindent 6 }}
+      {{- include "homelab-aws-creds.agent.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.agent.podAnnotations }}
@@ -15,7 +15,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "homelab-aws-creds.labels" . | nindent 8 }}
+        {{- include "homelab-aws-creds.agent.labels" . | nindent 8 }}
         {{- with .Values.agent.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: {{ include "homelab-aws-creds.fullname" . }}-agent
   labels:
-    {{- include "homelab-aws-creds.labels" . | nindent 4 }}
+    {{- include "homelab-aws-creds.agent.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.agent.service.type }}
   ports:
@@ -16,4 +16,4 @@ spec:
       protocol: TCP
       name: metrics
   selector:
-    {{- include "homelab-aws-creds.selectorLabels" . | nindent 4 }}
+    {{- include "homelab-aws-creds.agent.selectorLabels" . | nindent 4 }}

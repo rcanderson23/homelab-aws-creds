@@ -8,10 +8,9 @@ use crate::config::WebhookConfig;
 use crate::http::mappings;
 use anyhow::{anyhow, Error};
 use axum_server::tls_rustls::RustlsConfig;
-use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{Event, RecursiveMode, Watcher};
 use state::{new_webhook_router, WebhookState};
 use tokio::select;
-use tokio::sync::mpsc::{channel, Receiver};
 use tokio::task::JoinHandle;
 use tokio_rustls::rustls::pki_types::pem::PemObject;
 use tokio_rustls::rustls::pki_types::{CertificateDer, PrivateKeyDer};
@@ -19,13 +18,16 @@ use tokio_rustls::rustls::{server::WebPkiClientVerifier, ServerConfig as RustlsS
 use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 
+use super::util::create_watcher;
+
 pub(crate) async fn start_webhook(
     cancel: CancellationToken,
     cfg: Arc<WebhookConfig>,
 ) -> Result<(), Error> {
-    let role_mappings = mappings::load_mappings(&cfg.common_config.role_mapping_path).await?;
+    let role_mappings =
+        mappings::Mapping::try_new_from_file(cfg.common_config.role_mapping_path.clone()).await?;
     let router = new_webhook_router(WebhookState::new(
-        Arc::new(role_mappings),
+        role_mappings,
         cfg.agent_address.clone(),
         cfg.aws_region.clone(),
     ));
@@ -63,39 +65,35 @@ pub(crate) async fn start_webhook(
     Ok(())
 }
 
-fn create_watcher() -> Result<(RecommendedWatcher, Receiver<notify::Result<Event>>), Error> {
-    let (tx, rx) = channel(1);
-    let watcher = RecommendedWatcher::new(
-        move |res| {
-            if let Err(e) = tx.blocking_send(res) {
-                error!("failed to tx event: {}", e)
-            }
-        },
-        Config::default(),
-    )?;
-
-    Ok((watcher, rx))
-}
-
-async fn start_tls_watch(
-    tls_config: RustlsConfig,
-    cert: PathBuf,
-    key: PathBuf,
-) -> Result<(), Error> {
-    let (mut watcher, mut rx) = create_watcher()?;
-    watcher.watch(&cert, RecursiveMode::NonRecursive)?;
-
-    while let Some(res) = rx.recv().await {
-        match res {
-            Ok(event) => {
-                if event.kind.is_modify() {
-                    reload_tls(&tls_config, &cert, &key).await
+async fn start_tls_watch(tls_config: RustlsConfig, cert: PathBuf, key: PathBuf) {
+    loop {
+        info!("starting TLS watcher");
+        let Ok((mut watcher, mut rx)) = create_watcher() else {
+            error!("failed to create watcher");
+            continue;
+        };
+        if watcher.watch(&cert, RecursiveMode::Recursive).is_ok() {
+            while let Some(res) = rx.recv().await {
+                match res {
+                    Ok(event) => {
+                        match event.kind {
+                            notify::EventKind::Modify(_) => {
+                                reload_tls(&tls_config, &cert, &key).await
+                            }
+                            notify::EventKind::Remove(_) => {
+                                break;
+                            }
+                            _ => {}
+                        }
+                        if event.kind.is_modify() {}
+                    }
+                    Err(e) => error!("watcher error: {}", e),
                 }
             }
-            Err(e) => error!("watcher error: {}", e),
+        } else {
+            error!("failed to watch path: {:?}", cert);
         }
     }
-    Ok(())
 }
 
 async fn reload_tls(config: &RustlsConfig, cert: impl AsRef<Path>, key: impl AsRef<Path>) {
