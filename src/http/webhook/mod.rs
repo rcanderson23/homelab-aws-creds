@@ -8,11 +8,13 @@ use crate::config::WebhookConfig;
 use crate::http::mappings;
 use anyhow::{anyhow, Error};
 use axum_server::tls_rustls::RustlsConfig;
-use futures::channel::mpsc::{channel, Receiver};
+// use futures::channel::mpsc::{channel, Receiver};
+use futures::Stream;
 use futures::{SinkExt, StreamExt};
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use state::{new_webhook_router, WebhookState};
 use tokio::select;
+use tokio::sync::mpsc::{channel, Receiver};
 use tokio::task::JoinHandle;
 use tokio_rustls::rustls::pki_types::pem::PemObject;
 use tokio_rustls::rustls::pki_types::{CertificateDer, PrivateKeyDer};
@@ -65,14 +67,12 @@ pub(crate) async fn start_webhook(
 }
 
 fn create_watcher() -> Result<(RecommendedWatcher, Receiver<notify::Result<Event>>), Error> {
-    let (mut tx, rx) = channel(1);
+    let (tx, rx) = channel(1);
     let watcher = RecommendedWatcher::new(
         move |res| {
-            futures::executor::block_on(async {
-                if let Err(e) = tx.send(res).await {
-                    error!("failed to tx event: {}", e)
-                }
-            })
+            if let Err(e) = tx.blocking_send(res) {
+                error!("failed to tx event: {}", e)
+            }
         },
         Config::default(),
     )?;
@@ -88,14 +88,14 @@ async fn start_tls_watch(
     let (mut watcher, mut rx) = create_watcher()?;
     watcher.watch(&cert, RecursiveMode::NonRecursive)?;
 
-    while let Some(res) = rx.next().await {
+    while let Some(res) = rx.recv().await {
         match res {
             Ok(event) => {
                 if event.kind.is_modify() {
                     reload_tls(&tls_config, &cert, &key).await
                 }
             }
-            Err(e) => println!("watch error: {:?}", e),
+            Err(e) => error!("watcher error: {}", e),
         }
     }
     Ok(())
