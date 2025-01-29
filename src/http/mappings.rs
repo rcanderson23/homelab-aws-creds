@@ -54,6 +54,9 @@ pub(crate) async fn load_mappings(path: impl AsRef<Path>) -> Result<Mappings, Er
     )?)
 }
 
+// TODO: rework this fn as there is probably a better way to do this but this works well enough for
+// now. https://ahmet.im/blog/kubernetes-inotify/ has good information reloading configmaps and secrets
+// in kubernetes
 async fn start_mappings_watch(path: PathBuf, mapping: Mapping) {
     loop {
         trace!("starting mapping watcher");
