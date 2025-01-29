@@ -31,6 +31,9 @@ pub enum Error {
     #[error("{0}")]
     RoleMappingError(String),
 
+    #[error("notify error: {0}")]
+    NotifyError(#[from] notify::Error),
+
     #[cfg(target_os = "linux")]
     #[error("rtnetlink error: {0}")]
     NetlinkError(#[from] rtnetlink::Error),

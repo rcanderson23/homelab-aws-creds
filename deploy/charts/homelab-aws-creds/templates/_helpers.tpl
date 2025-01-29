@@ -31,11 +31,11 @@ Create chart name and version as used by the chart label.
 {{- end }}
 
 {{/*
-Common labels
+Agent Common labels
 */}}
-{{- define "homelab-aws-creds.labels" -}}
+{{- define "homelab-aws-creds.agent.labels" -}}
 helm.sh/chart: {{ include "homelab-aws-creds.chart" . }}
-{{ include "homelab-aws-creds.selectorLabels" . }}
+{{ include "homelab-aws-creds.agent.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -43,11 +43,31 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/*
-Selector labels
+Webhook Common labels
 */}}
-{{- define "homelab-aws-creds.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "homelab-aws-creds.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
+{{- define "homelab-aws-creds.webhook.labels" -}}
+helm.sh/chart: {{ include "homelab-aws-creds.chart" . }}
+{{ include "homelab-aws-creds.webhook.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+Agent Selector labels
+*/}}
+{{- define "homelab-aws-creds.agent.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "homelab-aws-creds.name" . }}-agent
+app.kubernetes.io/instance: {{ .Release.Name }}-agent
+{{- end }}
+
+{{/*
+Webhook Selector labels
+*/}}
+{{- define "homelab-aws-creds.webhook.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "homelab-aws-creds.name" . }}-webhook
+app.kubernetes.io/instance: {{ .Release.Name }}-webhook
 {{- end }}
 
 {{/*

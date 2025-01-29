@@ -74,5 +74,5 @@ pub struct CommonConfig {
 
     // Path to the role mapping config
     #[arg(long, env)]
-    pub role_mapping_path: String,
+    pub role_mapping_path: PathBuf,
 }

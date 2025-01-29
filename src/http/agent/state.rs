@@ -1,7 +1,7 @@
 use super::aws::{AwsState, TemporaryCredential};
 use super::kubernetes::KubeState;
-use super::mappings::Mappings;
 use crate::error::Error;
+use crate::http::mappings::Mapping;
 use crate::http::middleware::add_default_middleware;
 use axum::extract::State;
 use axum::response::IntoResponse;
@@ -9,7 +9,6 @@ use axum::routing::get;
 use axum::{Json, Router};
 use http::{HeaderMap, StatusCode};
 use serde::Serialize;
-use std::sync::Arc;
 
 type NamespaceServiceAccount = (String, String);
 
@@ -17,15 +16,11 @@ type NamespaceServiceAccount = (String, String);
 pub(crate) struct AgentState {
     aws_state: AwsState,
     kube_state: KubeState,
-    role_mappings: Arc<Mappings>,
+    role_mappings: Mapping,
 }
 
 impl AgentState {
-    pub(crate) fn new(
-        aws_state: AwsState,
-        kube_state: KubeState,
-        role_mappings: Arc<Mappings>,
-    ) -> Self {
+    pub(crate) fn new(aws_state: AwsState, kube_state: KubeState, role_mappings: Mapping) -> Self {
         Self {
             aws_state,
             kube_state,

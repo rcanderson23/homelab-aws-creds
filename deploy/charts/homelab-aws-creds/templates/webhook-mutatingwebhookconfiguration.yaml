@@ -12,8 +12,8 @@ metadata:
     {{- end }}
   labels:
     app: {{ include "homelab-aws-creds.fullname" . }}-admission
-    {{- include "homelab-aws-creds.labels" . | nindent 4 }}
-    {{- with .Values.webhook.mutatingWebhook.annotations }}
+    {{- include "homelab-aws-creds.webhook.labels" . | nindent 4 }}
+    {{- with .Values.webhook.mutatingWebhook.labels }}
     {{- toYaml . | nindent 4}}
     {{- end }}
 webhooks:

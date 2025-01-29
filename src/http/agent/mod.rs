@@ -20,14 +20,11 @@ pub(crate) async fn start_agent(
 ) -> Result<(), Error> {
     let kube_state = KubeState::try_new().await?;
     let aws_state = AwsState::new().await;
-    let role_mappings = mappings::load_mappings(&cfg.common_config.role_mapping_path).await?;
+    let role_mappings =
+        mappings::Mapping::try_new_from_file(cfg.common_config.role_mapping_path.clone()).await?;
 
     info!("creating agent router");
-    let router = new_agent_router(AgentState::new(
-        aws_state,
-        kube_state,
-        Arc::new(role_mappings),
-    ));
+    let router = new_agent_router(AgentState::new(aws_state, kube_state, role_mappings));
 
     let shutdown_cancel = cancel.clone();
     let h = tokio::spawn(async move {

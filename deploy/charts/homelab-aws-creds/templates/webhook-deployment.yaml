@@ -4,11 +4,11 @@ kind: Deployment
 metadata:
   name: {{ include "homelab-aws-creds.fullname" . }}-webhook
   labels:
-    {{- include "homelab-aws-creds.labels" . | nindent 4 }}
+    {{- include "homelab-aws-creds.webhook.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:
-      {{- include "homelab-aws-creds.selectorLabels" . | nindent 6 }}
+      {{- include "homelab-aws-creds.webhook.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.webhook.podAnnotations }}
@@ -16,7 +16,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "homelab-aws-creds.labels" . | nindent 8 }}
+        {{- include "homelab-aws-creds.webhook.labels" . | nindent 8 }}
         {{- with .Values.webhook.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -45,7 +45,7 @@ spec:
           {{- end }}
           securityContext:
             {{- toYaml .Values.webhook.securityContext | nindent 12 }}
-          image: "{{ .Values.webhook.image.repository }}:{{ .Values.agent.image.tag | default .Chart.AppVersion }}"
+          image: "{{ .Values.webhook.image.repository }}:{{ .Values.webhook.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.webhook.image.pullPolicy }}
           ports:
             - name: metrics
