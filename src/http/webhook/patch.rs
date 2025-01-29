@@ -2,6 +2,12 @@ use json_patch::Patch;
 use jsonptr::PointerBuf;
 use k8s_openapi::api::core::v1::{EnvVar, Pod};
 
+const ENV_AWS_FULL_URI: &str = "AWS_CONTAINER_CREDENTIALS_FULL_URI";
+const ENV_AWS_TOKEN_FILE: &str = "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE";
+const ENV_AWS_DEFAULT_REGION: &str = "AWS_DEFAULT_REGION";
+const ENV_AWS_REGION: &str = "AWS_REGION";
+const TOKEN_PATH: &str = "/var/run/secrets/kubernetes.io/serviceaccount/token";
+
 pub fn create_pod_patch(pod: &Pod, agent_address: &str, region: &str) -> Patch {
     let Some(ref spec) = pod.spec else {
         return Patch(vec![]);
@@ -17,7 +23,7 @@ pub fn create_pod_patch(pod: &Pod, agent_address: &str, region: &str) -> Patch {
                 patches.push(json_patch::PatchOperation::Add(json_patch::AddOperation {
                     path: path.clone(),
                     value: serde_json::to_value(EnvVar {
-                        name: "AWS_CONTAINER_CREDENTIALS_FULL_URI".to_string(),
+                        name: ENV_AWS_FULL_URI.to_string(),
                         value: Some(format!("http://{}/v1/container-credentials", agent_address)),
                         ..Default::default()
                     })
@@ -26,8 +32,8 @@ pub fn create_pod_patch(pod: &Pod, agent_address: &str, region: &str) -> Patch {
                 patches.push(json_patch::PatchOperation::Add(json_patch::AddOperation {
                     path: path.clone(),
                     value: serde_json::to_value(EnvVar {
-                        name: "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE".to_string(),
-                        value: Some("/var/run/secrets/kubernetes.io/serviceaccount/token".into()),
+                        name: ENV_AWS_TOKEN_FILE.to_string(),
+                        value: Some(TOKEN_PATH.into()),
                         ..Default::default()
                     })
                     .unwrap(),
@@ -37,7 +43,7 @@ pub fn create_pod_patch(pod: &Pod, agent_address: &str, region: &str) -> Patch {
                 patches.push(json_patch::PatchOperation::Add(json_patch::AddOperation {
                     path: path.clone(),
                     value: serde_json::to_value(EnvVar {
-                        name: "AWS_DEFAULT_REGION".to_string(),
+                        name: ENV_AWS_DEFAULT_REGION.to_string(),
                         value: Some(region.into()),
                         ..Default::default()
                     })
@@ -46,7 +52,7 @@ pub fn create_pod_patch(pod: &Pod, agent_address: &str, region: &str) -> Patch {
                 patches.push(json_patch::PatchOperation::Add(json_patch::AddOperation {
                     path: path.clone(),
                     value: serde_json::to_value(EnvVar {
-                        name: "AWS_REGION".to_string(),
+                        name: ENV_AWS_REGION.to_string(),
                         value: Some(region.into()),
                         ..Default::default()
                     })
@@ -59,22 +65,22 @@ pub fn create_pod_patch(pod: &Pod, agent_address: &str, region: &str) -> Patch {
                 path: path.clone(),
                 value: serde_json::to_value(vec![
                     EnvVar {
-                        name: "AWS_CONTAINER_CREDENTIALS_FULL_URI".to_string(),
+                        name: ENV_AWS_FULL_URI.to_string(),
                         value: Some(format!("http://{}/v1/container-credentials", agent_address)),
                         ..Default::default()
                     },
                     EnvVar {
-                        name: "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE".to_string(),
-                        value: Some("/var/run/secrets/kubernetes.io/serviceaccount/token".into()),
+                        name: ENV_AWS_TOKEN_FILE.to_string(),
+                        value: Some(TOKEN_PATH.into()),
                         ..Default::default()
                     },
                     EnvVar {
-                        name: "AWS_DEFAULT_REGION".to_string(),
+                        name: ENV_AWS_DEFAULT_REGION.to_string(),
                         value: Some(region.to_string()),
                         ..Default::default()
                     },
                     EnvVar {
-                        name: "AWS_REGION".to_string(),
+                        name: ENV_AWS_REGION.to_string(),
                         value: Some(region.to_string()),
                         ..Default::default()
                     },
@@ -99,7 +105,7 @@ fn contains_aws_cred_env(env: &[EnvVar]) -> bool {
 // checks if the environment variables contain aws region env
 fn contains_aws_region_env(env: &[EnvVar]) -> bool {
     env.iter()
-        .any(|nv| nv.name == "AWS_REGION" || nv.name == "AWS_DEFAULT_REGION")
+        .any(|nv| nv.name == ENV_AWS_REGION || nv.name == ENV_AWS_DEFAULT_REGION)
 }
 
 #[cfg(test)]
