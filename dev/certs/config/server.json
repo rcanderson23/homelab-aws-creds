@@ -1,5 +1,5 @@
 {
-  "CN": "server.kproxy.internal",
+  "CN": "webhook.internal",
   "hosts": [
     "127.0.0.1",
     "localhost"
@@ -13,7 +13,7 @@
       "C": "US",
       "L": "Helena",
       "O": "Dev",
-      "OU": "kproxy",
+      "OU": "webhook",
       "ST": "Montana"
     }
   ]

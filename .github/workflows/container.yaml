@@ -12,14 +12,12 @@ permissions:
   packages: write
 jobs:
   docker:
-    runs-on: homelab-aws-creds-runners
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: true
       matrix:
         platform:
           - linux/amd64
-          # disable arm64 as get seg faults when building with qemu
-          #- linux/arm64
 
     steps:
       - uses: actions/checkout@v4
