@@ -1,4 +1,3 @@
-use super::mappings::Mappings;
 use crate::http::mappings::Mapping;
 use crate::http::middleware::add_default_middleware;
 use crate::http::webhook::patch::create_pod_patch;

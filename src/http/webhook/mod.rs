@@ -8,7 +8,7 @@ use crate::config::WebhookConfig;
 use crate::http::mappings;
 use anyhow::{anyhow, Error};
 use axum_server::tls_rustls::RustlsConfig;
-use notify::{Event, RecursiveMode, Watcher};
+use notify::{RecursiveMode, Watcher};
 use state::{new_webhook_router, WebhookState};
 use tokio::select;
 use tokio::task::JoinHandle;
