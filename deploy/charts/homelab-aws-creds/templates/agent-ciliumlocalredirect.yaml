@@ -1,0 +1,20 @@
+{{- if .Values.agent.useCiliumRedirect }}
+apiVersion: "cilium.io/v2"
+kind: CiliumLocalRedirectPolicy
+metadata:
+  name: {{ include "homelab-aws-creds.fullname" . }}-agent
+spec:
+  redirectFrontend:
+    addressMatcher:
+      ip: "169.254.170.23"
+      toPorts:
+        - port: {{ .Values.agent.service.port }}
+          protocol: TCP
+  redirectBackend:
+    localEndpointSelector:
+      matchLabels:
+        {{- include "homelab-aws-creds.agent.selectorLabels" . | nindent 8 }}
+    toPorts:
+      - port: {{ .Values.agent.service.port }}
+        protocol: TCP
+{{- end }}
