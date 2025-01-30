@@ -27,3 +27,40 @@ mappings:
     namespace: default
     awsRole: arn:aws:iam::123456789000:role/read-only
 ```
+## Deploying
+
+Example values using long lived user credentials:
+```yaml
+agent:
+  env:
+  - name: AWS_REGION
+    value: us-west-2
+  - name: AWS_ACCESS_KEY_ID
+    valueFrom:
+      secretKeyRef:
+        key: key-id
+        name: credentials
+  - name: AWS_SECRET_ACCESS_KEY
+    valueFrom:
+      secretKeyRef:
+        key: key
+        name: credentials
+roleServiceAccountMappings: |
+  mappings:
+  - namespace: cert-manager
+    serviceAccount: cert-manager
+    awsRole: arn:aws:iam::123456789000:role/cert-manager
+  - namespace: external-dns
+    serviceAccount: external-dns
+    awsRole: arn:aws:iam::123456789000:role/external-dns
+useExistingMappingSecret: ""
+webhook:
+  cert:
+    certManager:
+      enabled: true
+  enabled: true
+  mutatingWebhook:
+    enabled: true
+  region: us-west-2
+```
+```
