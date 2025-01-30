@@ -63,4 +63,3 @@ webhook:
     enabled: true
   region: us-west-2
 ```
-```
