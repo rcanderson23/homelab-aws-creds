@@ -6,7 +6,7 @@ nameOverride: ""
 fullnameOverride: ""
 
 useExistingMappingSecret: ""
-roleServiceAccountMappings: {}
+roleServiceAccountMappings: ""
 #  mappings:
 #  - namespace: default
 #    serviceAccount: test
@@ -39,6 +39,9 @@ agent:
     name: ""
 
   volumes: []
+
+  metrics:
+    port: 9090
 
   livenessProbe:
     httpGet:
@@ -104,6 +107,9 @@ webhook:
     name: ""
 
   volumes: []
+
+  metrics:
+    port: 9090
 
   livenessProbe:
     httpGet:
