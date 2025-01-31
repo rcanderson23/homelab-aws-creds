@@ -78,6 +78,16 @@ webhook:
     failurePolicy: ""
     namespaces: []
 
+  cert:
+    useExistingSecret: ""
+    certManager:
+      enabled: false
+      rootCert:
+        # defaults to 5y
+        duration: ""
+      admissionCert:
+        # defaults to 1y
+        duration: ""
 
   replicaCount: 1
 
