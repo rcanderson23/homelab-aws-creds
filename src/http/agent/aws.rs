@@ -73,10 +73,9 @@ impl AwsState {
     }
     async fn get_cached_credential(&self, role: &str) -> Option<TemporaryCredential> {
         let guard = self.credential_cache.read().await;
+        let now = SystemTime::now();
         for cached_cred in guard.iter() {
-            if role == cached_cred.role
-                && !expired(&cached_cred.credential.expiration, SystemTime::now()).unwrap_or(true)
-            {
+            if role == cached_cred.role && !expired(&cached_cred.credential.expiration, now).ok()? {
                 return Some(cached_cred.credential.clone());
             }
         }
@@ -99,8 +98,13 @@ impl AwsState {
 
 fn expired(credential_expiration: &DateTime, now: SystemTime) -> Result<bool, Error> {
     let now_as_secs = now.duration_since(UNIX_EPOCH)?.as_secs();
-    let credential_expiration = credential_expiration.secs() as u64;
-    Ok((credential_expiration - now_as_secs) < 900)
+    let credential_expiration = credential_expiration.secs();
+    let time_left = credential_expiration.checked_sub_unsigned(now_as_secs);
+    if let Some(time_left) = time_left {
+        Ok(time_left < 900)
+    } else {
+        Ok(false)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -135,7 +139,7 @@ mod tests {
     #[test]
     fn time_checks() {
         let now = SystemTime::now();
-        let now_as_secs = now.duration_since(UNIX_EPOCH).unwrap().as_secs();
+        let now_as_secs = now.duration_since(UNIX_EPOCH).unwrap().as_secs() + 1;
         let dt = DateTime::from_secs(now_as_secs as i64);
         // expired check
         assert!(expired(&dt, now).unwrap());
