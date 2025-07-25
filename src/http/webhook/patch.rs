@@ -24,7 +24,7 @@ pub fn create_pod_patch(pod: &Pod, agent_address: &str, region: &str) -> Patch {
                     path: path.clone(),
                     value: serde_json::to_value(EnvVar {
                         name: ENV_AWS_FULL_URI.to_string(),
-                        value: Some(format!("http://{}/v1/container-credentials", agent_address)),
+                        value: Some(format!("http://{agent_address}/v1/container-credentials")),
                         ..Default::default()
                     })
                     .unwrap(),
@@ -66,7 +66,7 @@ pub fn create_pod_patch(pod: &Pod, agent_address: &str, region: &str) -> Patch {
                 value: serde_json::to_value(vec![
                     EnvVar {
                         name: ENV_AWS_FULL_URI.to_string(),
-                        value: Some(format!("http://{}/v1/container-credentials", agent_address)),
+                        value: Some(format!("http://{agent_address}/v1/container-credentials")),
                         ..Default::default()
                     },
                     EnvVar {
