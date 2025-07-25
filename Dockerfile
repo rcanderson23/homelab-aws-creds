@@ -1,4 +1,4 @@
-FROM rust:1.84-bullseye AS builder
+FROM rust:1.88-bullseye AS builder
 
 RUN apt-get update && apt-get -y install ca-certificates && update-ca-certificates
 WORKDIR /app
