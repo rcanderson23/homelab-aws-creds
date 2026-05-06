@@ -1,6 +1,7 @@
 mod patch;
 mod state;
 
+use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -37,15 +38,15 @@ pub(crate) async fn start_webhook(
 
     tokio::spawn(start_tls_watch(tls_config.clone(), cert, key));
 
+    let server_address: SocketAddr = cfg.server_address.parse()?;
     let handle = axum_server::Handle::new();
     let shutdown_handle = handle.clone();
-    let server_address = cfg.server_address.clone();
     let h: JoinHandle<Result<(), Error>> = tokio::spawn(async move {
         info!(
             "webhook configured to listen securely on {}",
             server_address
         );
-        axum_server::tls_rustls::bind_rustls(server_address.parse()?, tls_config)
+        axum_server::tls_rustls::bind_rustls(server_address, tls_config)
             .handle(handle)
             .serve(router.into_make_service())
             .await?;
